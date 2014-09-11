@@ -2,7 +2,7 @@
 
 #define PICK_FILES "IR2Pick.log IR2Keep.log IR2Bugs.log IR2Archive\\IR2KeepArchive.log"
 
-#define SAVE_FILE "IR2Log.xls"
+#define SAVE_FILE "IR2Log.iex"
 
 #define TIP cout << "input file names to convert or q to quit(input 0 as convert all default logs)\nyour input:"
 
