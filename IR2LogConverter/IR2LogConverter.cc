@@ -1,127 +1,5 @@
 #include "IR2LogConverter.h"
 
-int CIR2LogConverter::Convert(const vector<string>& fileList, const string& savedFile) const
-{
-	if (fileList.empty())
-	{
-		cerr << "no file specified..." << endl;
-		return -1;
-	}
-
-	KeySet setKey(key_sort);
-	VecContext vecContext;
-	for (size_t i = 0; i < fileList.size(); i++)
-	{
-		processFile(fileList[i], setKey, vecContext);
-	}
-
-	if (setKey.empty() || vecContext.empty())
-	{
-		cerr << "no context found..." << endl;
-		return -1;
-	}
-
-	// save to xlsx
-	save2File(savedFile, setKey, vecContext);
-
-	return 0;
-}
-
-void CIR2LogConverter::processFile(const string& fileName, KeySet& keySet, VecContext& vecContext)
-{
-	ifstream inFile(fileName);
-	if (!inFile)
-	{
-		cerr << "cannot open file:" << fileName << endl;
-		return;
-	}
-
-	string strLine;
-	while (inFile >> strLine)
-	{
-		ValContext mapContext;
-		vector<string> vecItems;
-		split2items(strLine, vecItems, ';');
-		for (size_t i = 0; i < vecItems.size(); i++)
-		{
-			string strItem = vecItems[i];
-			//cout << strItem << endl;
-
-			string strKey, strVal;
-			split2KeyVal(strItem, strKey, strVal, ':');
-
-			if (0 == i) // assume first item is time 
-			{
-				formatTime(strVal);
-			}
-			if (strKey.empty())
-			{
-				guessKey(strKey, i);
-			}
-			if (strVal.empty())
-			{
-				strVal = "null";
-			}
-
-			auto itSet = keySet.find(strKey);
-			if (itSet == keySet.end())
-			{
-				//cout << strKey << endl;
-				keySet.insert(keySet.begin(), strKey);
-			}
-
-			auto itMap = mapContext.find(strKey);
-			if (itMap != mapContext.end())
-			{
-				cerr << "multi key found..." << endl;
-			}
-			mapContext[strKey] = strVal;
-		}
-		vecContext.push_back(mapContext);
-	}
-}
-
-void CIR2LogConverter::save2File(const string& fileName, KeySet& keySet, VecContext& vecContext)
-{
-	static const char c_sep = ',';
-	ofstream oFile(fileName, ofstream::out);
-	if (!oFile)
-	{
-		cerr << "error open file " << fileName << endl;
-		return;
-	}
-
-	string strHeader;
-	for (auto it = keySet.cbegin(); it != keySet.cend(); ++it)
-	{
-		const string& key = *it;
-		strHeader.append(key);
-		strHeader.push_back(c_sep);
-	}
-	oFile << strHeader << "\n";
-
-	for (const auto& map : vecContext)
-	{
-		string strLine;
-		for (auto it = keySet.cbegin(); it != keySet.cend(); ++it)
-		{
-			const string& key = *it;
-
-			auto itMap = map.find(key);
-			if (itMap == map.cend())
-			{
-				strLine.append("null");
-			}
-			else
-			{
-				strLine.append((*itMap).second);
-			}
-			strLine.push_back(c_sep);
-		}
-		oFile << strLine << "\n";
-	}
-}
-
 bool key_sort(const string& str1, const string& str2)
 {
 	static unordered_map<string, int> keyWeight;
@@ -151,6 +29,154 @@ bool key_sort(const string& str1, const string& str2)
 	}
 
 	return keyWeight[str1] < keyWeight[str2];
+}
+
+int CIR2LogConverter::Convert(const vector<string>& fileList, const string& fileSave)
+{
+	if (fileList.empty())
+	{
+		cerr << "no file specified..." << endl;
+		return -1;
+	}
+
+	mFileList = fileList;
+	mFileSave = fileSave;
+	
+	Clear();
+	for (size_t i = 0; i < mFileList.size(); i++)
+	{
+		processFile(mFileList[i]);
+	}
+
+	if (mKey.empty() || mContext.empty())
+	{
+		cerr << "no context found..." << endl;
+		return -1;
+	}
+
+	// save to xlsx
+	save2File();
+
+	return 0;
+}
+
+void CIR2LogConverter::CheckDuplicate()
+{
+	std::sort(mRawData.begin(), mRawData.end());
+	auto it = std::unique(mRawData.begin(), mRawData.end());
+	if (it == mRawData.end())
+	{
+		cout << "no duplicate data" << endl;
+	}
+	else
+	{
+		cout << "found duplicated data..." << endl;
+	}
+	for (; it != mRawData.end(); ++it)
+	{
+		cout << *it << endl;
+	}
+}
+
+void CIR2LogConverter::processFile(const string& fileName)
+{
+	ifstream inFile(fileName);
+	if (!inFile)
+	{
+		cerr << "cannot open file:" << fileName << endl;
+		return;
+	}
+
+	string strLine;
+	while (inFile >> strLine)
+	{
+		mRawData.push_back(strLine);
+		processLine(strLine);
+	}
+}
+
+void CIR2LogConverter::processLine(const string& strLine)
+{
+	ItemMap mapItem;
+	vector<string> vecItems;
+	split2items(strLine, vecItems, ';');
+	for (size_t i = 0; i < vecItems.size(); i++)
+	{
+		string strItem = vecItems[i];
+		//cout << strItem << endl;
+
+		string strKey, strVal;
+		split2KeyVal(strItem, strKey, strVal, ':');
+
+		if (0 == i) // assume first item is time 
+		{
+			formatTime(strVal);
+		}
+		if (strKey.empty())
+		{
+			guessKey(strKey, i);
+		}
+		if (strVal.empty())
+		{
+			strVal = "null";
+		}
+
+		auto itSet = mKey.find(strKey);
+		if (itSet == mKey.end())
+		{
+			//cout << strKey << endl;
+			mKey.insert(itSet, strKey);
+		}
+
+		auto itMap = mapItem.find(strKey);
+		if (itMap != mapItem.end())
+		{
+			cerr << "multi key found..." << endl;
+		}
+		mapItem[strKey] = strVal;
+	}
+	mContext.push_back(mapItem);
+}
+
+void CIR2LogConverter::save2File() const
+{
+	static const char c_sep = ',';
+	ofstream oFile(mFileSave, ofstream::out);
+	if (!oFile)
+	{
+		cerr << "error open file " << mFileSave << endl;
+		return;
+	}
+
+	string strHeader;
+	for (auto it = mKey.cbegin(); it != mKey.cend(); ++it)
+	{
+		const string& key = *it;
+		strHeader.append(key);
+		strHeader.push_back(c_sep);
+	}
+	oFile << strHeader << "\n";
+
+	for (const auto& map : mContext)
+	{
+		string strLine;
+		for (auto it = mKey.cbegin(); it != mKey.cend(); ++it)
+		{
+			const string& key = *it;
+
+			auto itMap = map.find(key);
+			if (itMap == map.cend())
+			{
+				strLine.append("null");
+			}
+			else
+			{
+				strLine.append((*itMap).second);
+			}
+			strLine.push_back(c_sep);
+		}
+		oFile << strLine << "\n";
+	}
 }
 
 void CIR2LogConverter::split2items(const string& strLine, vector<string>& vecItems, char SEP)

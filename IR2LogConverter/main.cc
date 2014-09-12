@@ -63,16 +63,16 @@ int main(int argc, char** argv)
 		}
 		if (!fileList.empty())
 		{
-			CIR2LogConverter convertor;
-
 			if (strFileSave.empty())
 			{
 				strFileSave = fileList[0];
 				strFileSave.append(".csv");
 			}
+			CIR2LogConverter convertor;
 			if (0 == convertor.Convert(fileList, strFileSave))
 			{
 				cout << "conver done, new file name " << strFileSave << endl;
+				convertor.CheckDuplicate();
 			}
 			else
 			{
