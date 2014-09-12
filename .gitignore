@@ -37,3 +37,14 @@ Icon
 
 # backup files
 *.bak
+
+# VS 2012
+Debug
+*.sdf
+*.opensdf
+*.pdb
+*.obj
+*.log
+*.tlog
+*.lastbuildstate
+*.filters
