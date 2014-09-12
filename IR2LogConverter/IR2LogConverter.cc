@@ -15,6 +15,12 @@ int CIR2LogConverter::Convert(const vector<string>& fileList, const string& save
 		processFile(fileList[i], setKey, vecContext);
 	}
 
+	if (setKey.empty() || vecContext.empty())
+	{
+		cerr << "no context found..." << endl;
+		return -1;
+	}
+
 	// save to xlsx
 	save2File(savedFile, setKey, vecContext);
 
@@ -26,7 +32,7 @@ void CIR2LogConverter::processFile(const string& fileName, KeySet& keySet, VecCo
 	ifstream inFile(fileName);
 	if (!inFile)
 	{
-		cerr << "error open file:" << fileName << endl;
+		cerr << "cannot open file:" << fileName << endl;
 		return;
 	}
 
@@ -77,10 +83,12 @@ void CIR2LogConverter::processFile(const string& fileName, KeySet& keySet, VecCo
 
 void CIR2LogConverter::save2File(const string& fileName, KeySet& keySet, VecContext& vecContext)
 {
+	static const char c_sep = ',';
 	ofstream oFile(fileName, ofstream::out);
 	if (!oFile)
 	{
 		cerr << "error open file " << fileName << endl;
+		return;
 	}
 
 	string strHeader;
@@ -88,7 +96,7 @@ void CIR2LogConverter::save2File(const string& fileName, KeySet& keySet, VecCont
 	{
 		const string& key = *it;
 		strHeader.append(key);
-		strHeader.push_back('\t');
+		strHeader.push_back(c_sep);
 	}
 	oFile << strHeader << "\n";
 
@@ -108,7 +116,7 @@ void CIR2LogConverter::save2File(const string& fileName, KeySet& keySet, VecCont
 			{
 				strLine.append((*itMap).second);
 			}
-			strLine.push_back('\t');
+			strLine.push_back(c_sep);
 		}
 		oFile << strLine << "\n";
 	}
@@ -129,6 +137,8 @@ bool key_sort(const string& str1, const string& str2)
 		keyWeight["[CRIT%]"] = nWeight++;
 		keyWeight["[CRITDMG%]"] = nWeight++;
 		keyWeight["[ALLRES]"] = nWeight++;
+		keyWeight["[DPS]"] = nWeight++;
+		keyWeight["[ITEMID]"] = nWeight++;
 		keyWeight["Rule"] = nWeight++;
 	}
 	if (keyWeight.find(str1) == keyWeight.end())
