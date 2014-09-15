@@ -42,6 +42,7 @@ private:
 	static void split2items(const string& strLine, vector<string>& vecItems, char SEP);
 	static void split2KeyVal(const string& strItem, string& key, string& val, char SEP);
 	static void formatTime(string& strTime, time_t& tmLog);
+	static int getTimeZone();
 	static void guessKey(string& strKey, size_t itemIndex);
 
 private:

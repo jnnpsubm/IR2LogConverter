@@ -210,7 +210,7 @@ void CIR2LogConverter::split2KeyVal(const string& strItem, string& key, string& 
 	}
 }
 
-// assume formated as yyyyMMddHHmmssffff.hero
+// assume its UTC time and formated as yyyyMMddHHmmssffff.hero
 void CIR2LogConverter::formatTime(string& strTime, time_t& tmLog)
 {
 	struct tm t;
@@ -218,6 +218,7 @@ void CIR2LogConverter::formatTime(string& strTime, time_t& tmLog)
 	sscanf_s(strTime.c_str(), "%4d%2d%2d%2d%2d%2d", &t.tm_year, &t.tm_mon, &t.tm_mday, &t.tm_hour, &t.tm_min, &t.tm_sec);
 	t.tm_year -= 1900;
 	tmLog = mktime(&t);
+	tmLog += getTimeZone() * 60 * 60;
 	localtime_s(&t, &tmLog);
 
 	// 2005-11-05 14:23:23
@@ -230,6 +231,25 @@ void CIR2LogConverter::formatTime(string& strTime, time_t& tmLog)
 		<< setw(2) << t.tm_min << ':'
 		<< setw(2) << t.tm_sec << ' ';
 	strTime = osstream.str();
+}
+
+int CIR2LogConverter::getTimeZone()
+{
+	time_t time_utc;
+	struct tm tm_local, tm_gmt;
+
+	time(&time_utc);
+	localtime_s(&tm_local, &time_utc);
+	gmtime_s(&tm_gmt, &time_utc);
+
+	int time_zone = tm_local.tm_hour - tm_gmt.tm_hour;
+	if (time_zone < -12) {
+		time_zone += 24;
+	}
+	else if (time_zone > 12) {
+		time_zone -= 24;
+	}
+	return time_zone;
 }
 
 void CIR2LogConverter::guessKey(string& strKey, size_t itemIndex)
