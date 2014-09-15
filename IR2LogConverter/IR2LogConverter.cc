@@ -72,14 +72,11 @@ void CIR2LogConverter::CheckDuplicate()
 	{
 		cout << "found duplicated data..." << endl;
 	}
-	for (; it != mRawData.end(); ++it)
-	{
-		cout << *it << endl;
-	}
 }
 
 void CIR2LogConverter::processFile(const string& fileName)
 {
+	cout << "processing file:" << fileName << endl;
 	ifstream inFile(fileName);
 	if (!inFile)
 	{
@@ -99,6 +96,7 @@ void CIR2LogConverter::processLine(const string& strLine)
 {
 	ItemMap mapItem;
 	vector<string> vecItems;
+	time_t time;
 	split2items(strLine, vecItems, ';');
 	for (size_t i = 0; i < vecItems.size(); i++)
 	{
@@ -110,7 +108,7 @@ void CIR2LogConverter::processLine(const string& strLine)
 
 		if (0 == i) // assume first item is time 
 		{
-			formatTime(strVal);
+			formatTime(strVal, time);
 		}
 		if (strKey.empty())
 		{
@@ -135,7 +133,7 @@ void CIR2LogConverter::processLine(const string& strLine)
 		}
 		mapItem[strKey] = strVal;
 	}
-	mContext.push_back(mapItem);
+	mContext[time] = mapItem;
 }
 
 void CIR2LogConverter::save2File() const
@@ -157,13 +155,14 @@ void CIR2LogConverter::save2File() const
 	}
 	oFile << strHeader << "\n";
 
-	for (const auto& map : mContext)
+	for (const auto& pair : mContext)
 	{
 		string strLine;
 		for (auto it = mKey.cbegin(); it != mKey.cend(); ++it)
 		{
 			const string& key = *it;
 
+			const auto& map = pair.second;
 			auto itMap = map.find(key);
 			if (itMap == map.cend())
 			{
@@ -212,23 +211,25 @@ void CIR2LogConverter::split2KeyVal(const string& strItem, string& key, string& 
 }
 
 // assume formated as yyyyMMddHHmmssffff.hero
-void CIR2LogConverter::formatTime(string& strTime)
+void CIR2LogConverter::formatTime(string& strTime, time_t& tmLog)
 {
-	int year, month, day, hour, minute, second, ffff;
-	sscanf_s(strTime.c_str(), "%4d%2d%2d%2d%2d%2d%4d", &year, &month, &day, &hour, &minute, &second, &ffff);
+	struct tm t;
+	memset(&t, 0, sizeof(tm));
+	sscanf_s(strTime.c_str(), "%4d%2d%2d%2d%2d%2d", &t.tm_year, &t.tm_mon, &t.tm_mday, &t.tm_hour, &t.tm_min, &t.tm_sec);
+	t.tm_year -= 1900;
+	tmLog = mktime(&t);
+	localtime_s(&t, &tmLog);
 
 	// 2005-11-05 14:23:23
 	ostringstream osstream;
 	osstream << setfill('0')
-		<< setw(4) << year << '-'
-		<< setw(2) << month << '-'
-		<< setw(2) << day << ' '
-		<< setw(2) << hour << ':'
-		<< setw(2) << minute << ':'
-		<< setw(2) << second << ' ';
-	//<< setw(4) << ffff;
+		<< setw(4) << t.tm_year+1900 << '-'
+		<< setw(2) << t.tm_mon << '-'
+		<< setw(2) << t.tm_mday << ' '
+		<< setw(2) << t.tm_hour << ':'
+		<< setw(2) << t.tm_min << ':'
+		<< setw(2) << t.tm_sec << ' ';
 	strTime = osstream.str();
-	//cout << val << endl;
 }
 
 void CIR2LogConverter::guessKey(string& strKey, size_t itemIndex)

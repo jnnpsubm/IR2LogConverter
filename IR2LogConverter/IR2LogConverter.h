@@ -20,7 +20,7 @@ bool key_sort(const string& str1, const string& str2);
 
 typedef set<string, decltype(key_sort)*> KeySet;
 typedef unordered_map<string, string> ItemMap;
-typedef vector<ItemMap> VecContext;
+typedef map<time_t, ItemMap, greater<time_t>> ContextMap;
 
 class CIR2LogConverter
 {
@@ -41,11 +41,11 @@ private:
 
 	static void split2items(const string& strLine, vector<string>& vecItems, char SEP);
 	static void split2KeyVal(const string& strItem, string& key, string& val, char SEP);
-	static void formatTime(string& strTime);
+	static void formatTime(string& strTime, time_t& tmLog);
 	static void guessKey(string& strKey, size_t itemIndex);
 
 private:
-	VecContext     mContext;
+	ContextMap     mContext;
 	KeySet         mKey;
 	vector<string> mFileList;
 	string         mFileSave;
