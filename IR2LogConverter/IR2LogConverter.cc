@@ -133,7 +133,8 @@ void CIR2LogConverter::processLine(const string& strLine)
 		}
 		mapItem[strKey] = strVal;
 	}
-	mContext[time] = mapItem;
+	//mContext[time] = mapItem;
+	mContext.insert({ time, mapItem });
 }
 
 void CIR2LogConverter::save2File() const

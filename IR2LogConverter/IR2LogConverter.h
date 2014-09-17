@@ -20,7 +20,7 @@ bool key_sort(const string& str1, const string& str2);
 
 typedef set<string, decltype(key_sort)*> KeySet;
 typedef unordered_map<string, string> ItemMap;
-typedef map<time_t, ItemMap, greater<time_t>> ContextMap;
+typedef multimap<time_t, ItemMap, greater<time_t>> ContextMap;
 
 class CIR2LogConverter
 {
